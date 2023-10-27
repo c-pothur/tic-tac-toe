@@ -10,7 +10,7 @@ const intialState = {
   cells: initCells.slice(),
 };
 
-const gameReducer = (state, action) => {
+const gameReducer = (state = intialState, action) => {
   const type = action.type;
   const payload = action.payload;
   switch (type) {

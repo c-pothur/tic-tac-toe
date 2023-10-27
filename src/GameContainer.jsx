@@ -3,6 +3,7 @@ import { useEffect, useReducer } from "react";
 import { gameReducer, initCells, intialState } from "./Reducer";
 import GameActions from "./Actions";
 import Box from "./Box";
+import { connect } from "react-redux";
 
 const symbols = ["X", "O"];
 
@@ -18,11 +19,11 @@ const winPatterns = [
 ];
 
 const GameContainer = (props) => {
-  const [gameState, dispatch] = useReducer(gameReducer, intialState);
   const poneName = props.pone;
   const ptwoName = props.ptwo;
-  /*  if (poneName !== "") dispatch(GameActions.setPlayerOneAction(poneName));
-     if (ptwoName !== "") dispatch(GameActions.setPlayerTwoAction(ptwoName)); 
+  const gameState = props.gameState;
+  /*  if (poneName !== "") setPlayerOne(poneName));
+     if (ptwoName !== "") setPlayerTwo(ptwoName)); 
      these two lines resulted below error
      Uncaught Error: Too many re-renders. React limits the number of renders to prevent an infinite
      First time when compoent is mounted not empty is checked and dispatch action is executed and component is rerendered
@@ -33,11 +34,11 @@ const GameContainer = (props) => {
   */
   const reset = () => {
     console.log("reset");
-    dispatch(GameActions.resetGameAction());
+    props.resetGame();
   };
   useEffect(() => {
-    if (poneName !== "") dispatch(GameActions.setPlayerOneAction(poneName));
-    if (ptwoName !== "") dispatch(GameActions.setPlayerTwoAction(ptwoName));
+    if (poneName !== "") props.setPlayerOne(poneName);
+    if (ptwoName !== "") props.setPlayerTwo(ptwoName);
   }, [poneName, ptwoName]);
 
   useEffect(() => {
@@ -51,21 +52,21 @@ const GameContainer = (props) => {
   const clickHandler = (pos) => {
     let symbol = symbols[gameState.currentPlayer];
     const oldVal = gameState.cells[pos];
-    if ((gameState.result.trim() === "") & (oldVal === null)) {
-      let cells = gameState.cells;
+    if (gameState.result.trim() === "" && oldVal === null) {
+      let cells = gameState.cells.slice();
       cells[pos] = symbol;
-      dispatch(GameActions.tickAction(pos, symbol));
+      props.tick(pos, symbol);
       if (hasPattrenMatch(symbol, cells)) {
         if (gameState.currentPlayer == 0) {
-          dispatch(GameActions.playerOneWonAction());
+          props.playerOneWon();
         } else {
-          dispatch(GameActions.playerTwoWonAction());
+          props.playerTwoWon();
         }
       } else {
         if (!cells.includes(null)) {
-          dispatch(GameActions.drawGameAction());
+          props.drawGame();
         }
-        dispatch(GameActions.nextUserTurnAcion());
+        props.nextUserTurn();
       }
     }
   };
@@ -82,7 +83,7 @@ const GameContainer = (props) => {
     });
   };
   const newGameHandler = () => {
-    dispatch(GameActions.resetGameAction());
+    props.resetGame();
   };
 
   return (
@@ -122,4 +123,36 @@ const GameContainer = (props) => {
     </div>
   );
 };
-export default GameContainer;
+
+const mapStateToProps = (state) => {
+  return { gameState: state };
+};
+const mapDispatchToProps = (dispatch) => {
+  return {
+    nextUserTurn: () => {
+      dispatch({ type: "NEXT_USER_TURN" });
+    },
+    resetGame: () => {
+      dispatch({ type: "RESET_GAME" });
+    },
+    playerOneWon: () => {
+      dispatch({ type: "PLAYER_ONE_WON" });
+    },
+    playerTwoWon: () => {
+      dispatch({ type: "PLAYER_TWO_WON" });
+    },
+    drawGame: () => {
+      dispatch({ type: "DRAW_GAME" });
+    },
+    tick: (position, symbol) => {
+      dispatch({ type: "TICK", payload: { position, symbol } });
+    },
+    setPlayerOne: (playerOne) => {
+      dispatch({ type: "SET_PLAYER_ONE", payload: playerOne });
+    },
+    setPlayerTwo: (playerTwo) => {
+      dispatch({ type: "SET_PLAYER_TWO", payload: playerTwo });
+    },
+  };
+};
+export default connect(mapStateToProps, mapDispatchToProps)(GameContainer);
