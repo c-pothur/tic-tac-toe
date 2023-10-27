@@ -9,7 +9,8 @@ const intialState = {
   result: "",
   cells: initCells.slice(),
 };
-
+// below code is not used in this project for current branch app-with-redux-toolkit
+// GameSlice.js, Store.js has been used with redux-toolkit
 const gameReducer = (state, action) => {
   const type = action.type;
   const payload = action.payload;

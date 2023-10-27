@@ -1,8 +1,8 @@
-import { useEffect, useReducer } from "react";
-
-import { gameReducer, initCells, intialState } from "./Reducer";
-import GameActions from "./Actions";
+import { useEffect } from "react";
+import { gameActions } from "./GameSlice";
+import { initCells } from "./Reducer";
 import Box from "./Box";
+import { useDispatch, useSelector } from "react-redux";
 
 const symbols = ["X", "O"];
 
@@ -17,55 +17,47 @@ const winPatterns = [
   [3, 5, 7],
 ];
 
-const GameContainer = (props) => {
-  const [gameState, dispatch] = useReducer(gameReducer, intialState);
-  const poneName = props.pone;
-  const ptwoName = props.ptwo;
-  /*  if (poneName !== "") dispatch(GameActions.setPlayerOneAction(poneName));
-     if (ptwoName !== "") dispatch(GameActions.setPlayerTwoAction(ptwoName)); 
-     these two lines resulted below error
-     Uncaught Error: Too many re-renders. React limits the number of renders to prevent an infinite
-     First time when compoent is mounted not empty is checked and dispatch action is executed and component is rerendered
-     as we are using the player names in this component. 
-     on re-render again these two conditions are executed and component get re-rendered and goes into loop
-     
-     To avoid this we will use useEffect here
-  */
-  const reset = () => {
-    console.log("reset");
-    dispatch(GameActions.resetGameAction());
-  };
-  useEffect(() => {
-    if (poneName !== "") dispatch(GameActions.setPlayerOneAction(poneName));
-    if (ptwoName !== "") dispatch(GameActions.setPlayerTwoAction(ptwoName));
-  }, [poneName, ptwoName]);
+const GameContainer = ({ pone, ptwo, exitGameHandler }) => {
+  const gameState = useSelector((state) => {
+    return state.game;
+  });
+
+  const dispatch = useDispatch();
 
   useEffect(() => {
-    return reset;
+    if (pone !== "") dispatch(gameActions.setPlayerOneName(pone));
+    if (ptwo !== "") dispatch(gameActions.setPlayerTwoName(ptwo));
+  }, [pone, ptwo]);
+
+  useEffect(() => {
+    return () => {
+      dispatch(gameActions.resetGame());
+    };
   }, []);
+
   const getCurrentPlayerName = () => {
     return gameState.currentPlayer === 0
       ? gameState.playerOne
       : gameState.playerTwo;
   };
-  const clickHandler = (pos) => {
+  const clickHandler = (position) => {
     let symbol = symbols[gameState.currentPlayer];
-    const oldVal = gameState.cells[pos];
-    if ((gameState.result.trim() === "") & (oldVal === null)) {
-      let cells = gameState.cells;
-      cells[pos] = symbol;
-      dispatch(GameActions.tickAction(pos, symbol));
+    const oldVal = gameState.cells[position];
+    if (gameState.result.trim() === "" && oldVal === null) {
+      let cells = gameState.cells.slice();
+      cells[position] = symbol;
+      dispatch(gameActions.tick({ position, symbol }));
       if (hasPattrenMatch(symbol, cells)) {
-        if (gameState.currentPlayer == 0) {
-          dispatch(GameActions.playerOneWonAction());
+        if (gameState.currentPlayer === 0) {
+          dispatch(gameActions.setPlayerOneWon());
         } else {
-          dispatch(GameActions.playerTwoWonAction());
+          dispatch(gameActions.setPlayerTwoWon());
         }
       } else {
         if (!cells.includes(null)) {
-          dispatch(GameActions.drawGameAction());
+          dispatch(gameActions.drawGame());
         }
-        dispatch(GameActions.nextUserTurnAcion());
+        dispatch(gameActions.setNextUserTurn());
       }
     }
   };
@@ -75,14 +67,12 @@ const GameContainer = (props) => {
     });
     return winPatterns.some((pattren) => {
       return pattren.every((winpos) => {
-        return occurances.findIndex((pos) => pos === winpos - 1) > -1
-          ? true
-          : false;
+        return occurances.findIndex((pos) => pos === winpos - 1) > -1;
       });
     });
   };
   const newGameHandler = () => {
-    dispatch(GameActions.resetGameAction());
+    dispatch(gameActions.resetGame());
   };
 
   return (
@@ -117,7 +107,7 @@ const GameContainer = (props) => {
         {gameState.result === "" && (
           <button onClick={newGameHandler}> Rest Boxes</button>
         )}
-        <button onClick={props.exitGameHandler}> Exit Game</button>
+        <button onClick={exitGameHandler}> Exit Game</button>
       </div>
     </div>
   );
