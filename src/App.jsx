@@ -7,20 +7,19 @@ import Intro from "./Into";
 
 function App() {
   const [gameStarted, setGameStarted] = useState(false);
-  const [pone, setPone] = useState("PlayerOne");
-  const [ptwo, setPtwo] = useState("PlayerTwo");
+  const [pone, setPone] = useState("");
+  const [ptwo, setPtwo] = useState("");
 
   const playBtnHandler = (e) => {
-    
     const poneName = e.target.playerOne.value;
     const ptwoName = e.target.playerTwo.value;
-    if(poneName.trim() !== '') setPone(poneName);
-    if(ptwoName.trim() !== '') setPtwo(ptwoName);
+    if (poneName.trim() !== "") setPone(poneName);
+    if (ptwoName.trim() !== "") setPtwo(ptwoName);
     setGameStarted(true);
   };
   const exitGameHandler = () => {
-    setPone("PlayerOne");
-    setPtwo("PlayerTwo");
+    setPone("");
+    setPtwo("");
     setGameStarted(false);
   };
   return (

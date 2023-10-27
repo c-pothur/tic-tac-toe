@@ -1,74 +1,80 @@
-import { useState } from "react";
+import { useEffect, useReducer } from "react";
+
+import { gameReducer, initCells, intialState } from "./Reducer";
+import GameActions from "./Actions";
 import Box from "./Box";
 
+const symbols = ["X", "O"];
+
+const winPatterns = [
+  [1, 2, 3],
+  [4, 5, 6],
+  [7, 8, 9],
+  [1, 4, 7],
+  [2, 5, 8],
+  [3, 6, 9],
+  [1, 5, 9],
+  [3, 5, 7],
+];
+
 const GameContainer = (props) => {
-  const initCells = [null, null, null, null, null, null, null, null, null];
-  const intialState = {
-    gameStarted: false,
-    playerOne: props.pone,
-    playerTwo: props.ptwo,
-    playerOneWins: 0,
-    playerTwoWins: 0,
-    currentPlayer: 0,
-    result: "",
-    cells: initCells.slice(),
+  const [gameState, dispatch] = useReducer(gameReducer, intialState);
+  const poneName = props.pone;
+  const ptwoName = props.ptwo;
+  /*  if (poneName !== "") dispatch(GameActions.setPlayerOneAction(poneName));
+     if (ptwoName !== "") dispatch(GameActions.setPlayerTwoAction(ptwoName)); 
+     these two lines resulted below error
+     Uncaught Error: Too many re-renders. React limits the number of renders to prevent an infinite
+     First time when compoent is mounted not empty is checked and dispatch action is executed and component is rerendered
+     as we are using the player names in this component. 
+     on re-render again these two conditions are executed and component get re-rendered and goes into loop
+     
+     To avoid this we will use useEffect here
+  */
+  const reset = () => {
+    console.log("reset");
+    dispatch(GameActions.resetGameAction());
   };
-  const symbols = ["X", "O"];
-  const [state, setState] = useState(intialState);
-  const winPatterns = [
-    [1, 2, 3],
-    [4, 5, 6],
-    [7, 8, 9],
-    [1, 4, 7],
-    [2, 5, 8],
-    [3, 6, 9],
-    [1, 5, 9],
-    [3, 5, 7],
-  ];
+  useEffect(() => {
+    if (poneName !== "") dispatch(GameActions.setPlayerOneAction(poneName));
+    if (ptwoName !== "") dispatch(GameActions.setPlayerTwoAction(ptwoName));
+  }, [poneName, ptwoName]);
+
+  useEffect(() => {
+    return reset;
+  }, []);
   const getCurrentPlayerName = () => {
-    return state.currentPlayer === 0 ? state.playerOne : state.playerTwo;
-  }
+    return gameState.currentPlayer === 0
+      ? gameState.playerOne
+      : gameState.playerTwo;
+  };
   const clickHandler = (pos) => {
-    let value = symbols[state.currentPlayer];
-    const oldVal = state.cells[pos];
-    if ((state.result.trim() === "") & (oldVal === null)) {
-      let newState = {};
-      newState.cells = state.cells;
-      newState.cells[pos] = value;
-      if (hasPattrenMatch(value, newState.cells)) {
-        if (state.currentPlayer == 0) {
-          newState.playerOneWins = state.playerOneWins + 1;
-          newState.result = `${state.playerOne} has WON!!!`;
+    let symbol = symbols[gameState.currentPlayer];
+    const oldVal = gameState.cells[pos];
+    if ((gameState.result.trim() === "") & (oldVal === null)) {
+      let cells = gameState.cells;
+      cells[pos] = symbol;
+      dispatch(GameActions.tickAction(pos, symbol));
+      if (hasPattrenMatch(symbol, cells)) {
+        if (gameState.currentPlayer == 0) {
+          dispatch(GameActions.playerOneWonAction());
         } else {
-          newState.playerTwoWins = state.playerTwoWins + 1;
-          newState.result = `${state.playerTwo} has WON!!!`;
+          dispatch(GameActions.playerTwoWonAction());
         }
       } else {
-        if (!newState.cells.includes(null)) {
-          newState.playerOneWins = state.playerOneWins + 1;
-          newState.playerTwoWins = state.playerTwoWins + 1;
-          newState.result = `Draw!!!`;
+        if (!cells.includes(null)) {
+          dispatch(GameActions.drawGameAction());
         }
-        newState.currentPlayer =
-          state.currentPlayer == 0 ? 1 : state.currentPlayer == 1 ? 0 : 1;
+        dispatch(GameActions.nextUserTurnAcion());
       }
-
-      setState((currentState) => {
-        return { ...currentState, ...newState };
-      });
     }
   };
   const hasPattrenMatch = (symbol, cells) => {
-    console.log(symbol, cells);
     const occurances = cells.map((val, index) => {
       if (val === symbol) return index;
     });
-    console.log(occurances);
-    return winPatterns.some((pattren, index) => {
-      console.log(`pattren ${index}`, pattren);
-      return pattren.every((winpos, index) => {
-        console.log(`winpos ${index}`, winpos);
-        console.log(occurances.findIndex((pos) => pos === winpos - 1));
+    return winPatterns.some((pattren) => {
+      return pattren.every((winpos) => {
         return occurances.findIndex((pos) => pos === winpos - 1) > -1
           ? true
           : false;
@@ -76,36 +82,39 @@ const GameContainer = (props) => {
     });
   };
   const newGameHandler = () => {
-    setState((state) => {
-      return { ...state, cells: initCells.slice(), result: "" };
-    });
+    dispatch(GameActions.resetGameAction());
   };
 
   return (
     <div className="gameContainer">
       <div id="playerInfo">
         <h3>
-          {state.playerOne} - {state.playerOneWins}
+          {gameState.playerOne} - {gameState.playerOneWins}
         </h3>
         <h3>
-          {state.playerTwo} - {state.playerTwoWins}
+          {gameState.playerTwo} - {gameState.playerTwoWins}
         </h3>
-        
       </div>
       <div className="game">
-        {initCells.map((val, index) => <Box key={index} symbol={state.cells[index]} clickHandler={()=>{clickHandler(index)}} />)}
-
-        
+        {initCells.map((val, index) => (
+          <Box
+            key={index}
+            symbol={gameState.cells[index]}
+            clickHandler={() => {
+              clickHandler(index);
+            }}
+          />
+        ))}
       </div>
       <h3>{getCurrentPlayerName()} turn !</h3>
       <div>
-        {state.result != "" && (
+        {gameState.result != "" && (
           <>
-            <h1>{state.result}</h1>
+            <h1>{gameState.result}</h1>
             <button onClick={newGameHandler}> New Game</button>
           </>
         )}
-        {state.result === "" && (
+        {gameState.result === "" && (
           <button onClick={newGameHandler}> Rest Boxes</button>
         )}
         <button onClick={props.exitGameHandler}> Exit Game</button>
